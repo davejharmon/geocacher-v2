@@ -111,7 +111,7 @@ void setup(void) {
   pixels.setBrightness(50);
   pixels.show();
 
-  Serial.println("Hello world!");
+  Serial.println("Hello world how are you!");
   Serial.println("");
   colorWipe(pixels.Color(255, 0, 0), 50);
 }
