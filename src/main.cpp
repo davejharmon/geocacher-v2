@@ -42,8 +42,13 @@ GPS_Coordinate LITTLE_CAFE(-33.91912615210476, 151.11033004286273, GREEN);
 GPS_Coordinate CNR_CANTERBURY(-33.918216637305314, 151.1045469768015, BLUE);
 GPS_Coordinate CNR_CROSS(-33.92124868722235, 151.10657241841565, YELLOW);
 GPS_Coordinate DUMMY(-33.91885048631868, 151.10756407548317, WHITE);
+//static const GPS_Coordinate TARGETS[]={BACKYARD, LITTLE_CAFE, CNR_CANTERBURY, CNR_CROSS};
 
-static const GPS_Coordinate TARGETS[]={BACKYARD, LITTLE_CAFE, CNR_CANTERBURY, CNR_CROSS};
+GPS_Coordinate HEDGEMAZE(-34.51368423046803, 150.40097802353463, RED);
+GPS_Coordinate TREEHOUSE(-34.51326555150593, 150.40087040403776, GREEN);
+GPS_Coordinate LONE_TREE(-34.510580709123246, 150.4078234130258, BLUE);
+GPS_Coordinate MOSSVALE(-34.51344893862964, 150.40351790524255, YELLOW);
+static const GPS_Coordinate TARGETS[]={HEDGEMAZE, TREEHOUSE, LONE_TREE, MOSSVALE};
 
 #define MODE_SEARCHING_FOR_GPS 0
 #define MODE_ERROR 1
@@ -54,6 +59,8 @@ static const GPS_Coordinate TARGETS[]={BACKYARD, LITTLE_CAFE, CNR_CANTERBURY, CN
 unsigned long TOCK = 2; // Variable to store the time of the last heartbeat
 int prevButtonState = HIGH;
 int dest = 0;
+const float ALPHA = 0.2;                                                                                              // smoothing factor (for compass)
+float smoothedHeading=0;
 
 static void smartDelay(unsigned long ms)                                                                            // a custom version of delay() that ensures the gps is being fed
 {
@@ -226,15 +233,16 @@ void loop(void) {
   }
   prevButtonState=btn_state;
 
-//  double lat = DUMMY.lat;                                                                                             // dummy GPS for indoor code
-//  double lng = DUMMY.lng; 
-//  if (true) {
+  //double lat = DUMMY.lat;                                                                                             // dummy GPS for indoor code
+  //double lng = DUMMY.lng; 
+  //if (true) {
 
-double lat = gps.location.lat();
-double lng = gps.location.lng();
-if (gps.location.isValid() == true) {                                                                                // if gps has a lock... display heading and distance
+  double lat = gps.location.lat();
+  double lng = gps.location.lng();
+  if (gps.location.isValid() == true) {                                                                                // if gps has a lock... display heading and distance
     float heading = compass.getNavigationAngle();
-    int north = static_cast<int>(heading);
+    smoothedHeading = ALPHA * heading + (1 - ALPHA) * smoothedHeading;                                               // apply smoothing
+    int north = static_cast<int>(smoothedHeading);
     double courseTo = gps.courseTo(lat, lng, TARGETS[dest].lat, TARGETS[dest].lng);
     double distanceTo = gps.distanceBetween(lat, lng, TARGETS[dest].lat, TARGETS[dest].lng);
 
