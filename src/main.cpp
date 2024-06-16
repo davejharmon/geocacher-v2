@@ -9,7 +9,8 @@
 #endif
 
 #define NEO_PIN 6
-#define BTN_PIN 2
+#define BTN_RED 2
+#define BTN_BLU 5
 #define GPS_RX 4
 #define GPS_TX 3
 #define NUM_PIXELS 24
@@ -42,13 +43,13 @@ GPS_Coordinate LITTLE_CAFE(-33.91912615210476, 151.11033004286273, GREEN);
 GPS_Coordinate CNR_CANTERBURY(-33.918216637305314, 151.1045469768015, BLUE);
 GPS_Coordinate CNR_CROSS(-33.92124868722235, 151.10657241841565, YELLOW);
 GPS_Coordinate DUMMY(-33.91885048631868, 151.10756407548317, WHITE);
-//static const GPS_Coordinate TARGETS[]={BACKYARD, LITTLE_CAFE, CNR_CANTERBURY, CNR_CROSS};
+static const GPS_Coordinate TARGETS[]={BACKYARD, LITTLE_CAFE, CNR_CANTERBURY, CNR_CROSS};
 
 GPS_Coordinate HEDGEMAZE(-34.51368423046803, 150.40097802353463, RED);
 GPS_Coordinate TREEHOUSE(-34.51326555150593, 150.40087040403776, GREEN);
 GPS_Coordinate LONE_TREE(-34.510580709123246, 150.4078234130258, BLUE);
 GPS_Coordinate MOSSVALE(-34.51344893862964, 150.40351790524255, YELLOW);
-static const GPS_Coordinate TARGETS[]={HEDGEMAZE, TREEHOUSE, LONE_TREE, MOSSVALE};
+//static const GPS_Coordinate TARGETS[]={HEDGEMAZE, TREEHOUSE, LONE_TREE, MOSSVALE};
 
 #define MODE_SEARCHING_FOR_GPS 0
 #define MODE_ERROR 1
@@ -57,8 +58,11 @@ static const GPS_Coordinate TARGETS[]={HEDGEMAZE, TREEHOUSE, LONE_TREE, MOSSVALE
 #define MODE_BLINK 4
 #define TICK 10                                                                                                     // heartbeat in milliseconds
 unsigned long TOCK = 2; // Variable to store the time of the last heartbeat
-int prevButtonState = HIGH;
+int prevRedBtnState = HIGH;
+int prevBluBtnState = HIGH;
 int dest = 0;
+int adjustedCourse=0;
+int spread=0;
 const float ALPHA = 0.2;                                                                                              // smoothing factor (for compass)
 float smoothedHeading=0;
 
@@ -83,6 +87,12 @@ uint32_t Wheel(byte WheelPos) {                                                 
   }
   WheelPos -= 170;
   return pixels.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+void setColor(uint32_t c) {
+   for(uint16_t i=0; i<pixels.numPixels(); i++) {
+    pixels.setPixelColor(i, c);
+  } 
+  pixels.show();
 }
 void colorWipe(uint32_t c, uint8_t wait) {                                                                            // fill the dots one after the other with a color
 
@@ -206,32 +216,50 @@ void updateDestination() {
   if (dest >= static_cast<int>(sizeof(TARGETS) / sizeof(TARGETS[0]))) dest = 0;
 }
 
+void pulseDestination(uint8_t wait) {
+  setColor(0);
+  for (int i = 1; i <= spread; i++) {
+    drawLine(TARGETS[dest].col,adjustedCourse,i);
+    smartDelay(wait);
+  }
+}
+
 void setup(void) {
   Serial.begin(BAUD_RATE);
   ss.begin(BAUD_RATE);
 
-  pinMode(BTN_PIN, INPUT_PULLUP);                                                                                   // initialise push button
+  pinMode(BTN_RED, INPUT_PULLUP);                                                                                   // initialise push buttons
+  pinMode(BTN_BLU, INPUT_PULLUP);
+
 
   compass.init();                                                                                                   // initialise LSM303
   compass.enable();
 
   pixels.begin();                                                                                                   // initialise neopixel pixels
   pixels.setBrightness(50);
+  setColor(0);
   pixels.show();
 
   Serial.println("Hello world how are you!");
   Serial.println("");
-  colorWipe(TARGETS[dest].col, 50);
 }
 
 void loop(void) {
   while (ss.available()) gps.encode(ss.read());
   compass.read();
-  int btn_state = digitalRead(BTN_PIN);
-  if (btn_state==LOW && prevButtonState==HIGH) {
+  int btn_red_state = digitalRead(BTN_RED);
+  int btn_blu_state = digitalRead(BTN_BLU);
+  if (btn_red_state==LOW && prevRedBtnState==HIGH) {
+    Serial.println("click red!");
     updateDestination();
   }
-  prevButtonState=btn_state;
+  prevRedBtnState=btn_red_state;
+
+  if (btn_blu_state==LOW && prevBluBtnState==HIGH) {
+    Serial.println("click blue!");
+    pulseDestination(50);
+  }
+  prevBluBtnState=btn_blu_state;
 
   //double lat = DUMMY.lat;                                                                                             // dummy GPS for indoor code
   //double lng = DUMMY.lng; 
@@ -246,8 +274,8 @@ void loop(void) {
     double courseTo = gps.courseTo(lat, lng, TARGETS[dest].lat, TARGETS[dest].lng);
     double distanceTo = gps.distanceBetween(lat, lng, TARGETS[dest].lat, TARGETS[dest].lng);
 
-    int adjustedCourse=map(abs(north-int(courseTo)),0,360,NUM_PIXELS,0);
-    int spread = map(distanceTo, MAX_DISTANCE,0,1,NUM_PIXELS);
+    adjustedCourse=map(abs(north-int(courseTo)),0,360,NUM_PIXELS,0);
+    spread = map(distanceTo, MAX_DISTANCE,0,1,NUM_PIXELS);
     pixels.fill(0, 0, 0);
     drawLine(TARGETS[dest].col,adjustedCourse,spread);
     pixels.show();   
