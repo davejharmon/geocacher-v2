@@ -42,8 +42,9 @@ GPS_Coordinate BACKYARD(-33.91955388338126, 151.10610149289386, RED);
 GPS_Coordinate LITTLE_CAFE(-33.91912615210476, 151.11033004286273, GREEN);
 GPS_Coordinate CNR_CANTERBURY(-33.918216637305314, 151.1045469768015, BLUE);
 GPS_Coordinate CNR_CROSS(-33.92124868722235, 151.10657241841565, YELLOW);
+GPS_Coordinate FRANK_AND_C(-33.91971675633819, 151.1189733679412, YELLOW);
 GPS_Coordinate DUMMY(-33.91885048631868, 151.10756407548317, WHITE);
-static const GPS_Coordinate TARGETS[]={BACKYARD, LITTLE_CAFE, CNR_CANTERBURY, CNR_CROSS};
+static const GPS_Coordinate TARGETS[]={BACKYARD, LITTLE_CAFE, CNR_CANTERBURY, FRANK_AND_C};
 
 GPS_Coordinate HEDGEMAZE(-34.51368423046803, 150.40097802353463, RED);
 GPS_Coordinate TREEHOUSE(-34.51326555150593, 150.40087040403776, GREEN);
@@ -218,7 +219,11 @@ void updateDestination() {
 
 void pulseDestination(uint8_t wait) {
   setColor(0);
+  drawLine(WHITE, adjustedCourse, gps.satellites.isValid()+1);
+  smartDelay(300);
+  setColor(0);
   for (int i = 1; i <= spread; i++) {
+    
     drawLine(TARGETS[dest].col,adjustedCourse,i);
     smartDelay(wait);
   }
@@ -239,7 +244,7 @@ void setup(void) {
   pixels.setBrightness(50);
   setColor(0);
   pixels.show();
-
+  updatePixels(MODE_SEARCHING_FOR_GPS);
   Serial.println("Hello world how are you!");
   Serial.println("");
 }
