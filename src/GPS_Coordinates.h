@@ -1,9 +1,9 @@
-// GPS_Coordinates.h
+//GPS_Coordinates.h
 #ifndef GPS_COORDINATES_H
 #define GPS_COORDINATES_H
 
 #include <Arduino.h>
-#include "Colors.h"
+#include "neopixelhandler.h"
 
 class GPS_Coordinate {
   public:
@@ -23,6 +23,7 @@ extern GPS_Coordinate CNR_CROSS;
 extern GPS_Coordinate FRANK_AND_C;
 extern GPS_Coordinate DUMMY;
 extern const GPS_Coordinate TARGETS[];
+extern const int TARGET_COUNT;
 
 extern GPS_Coordinate HEDGEMAZE;
 extern GPS_Coordinate TREEHOUSE;
