@@ -16,7 +16,7 @@ NeopixelHandler::NeopixelHandler()
 // Initialize the Neopixels
 void NeopixelHandler::begin() {
     pixels.begin();
-    pixels.setBrightness(50);
+    pixels.setBrightness(25);
     setColor(BLACK);
 }
 
@@ -37,21 +37,6 @@ void NeopixelHandler::colorWipe(uint32_t color, int wait) {
     }
 }
 
-// Theater chase animation with rainbow colors
-void NeopixelHandler::theaterChaseRainbow(int wait) {
-    int firstPixelHue = 0;
-    for (int j = 0; j < 256; j++) {
-        for (int i = 0; i < NUMPIXELS; i += 3) {
-            pixels.setPixelColor(i + 0, pixels.ColorHSV(firstPixelHue + (i * 65536L / pixels.numPixels()), 255, 255));
-            pixels.setPixelColor(i + 1, pixels.ColorHSV(firstPixelHue + (i * 65536L / pixels.numPixels()), 255, 255));
-            pixels.setPixelColor(i + 2, pixels.ColorHSV(firstPixelHue + (i * 65536L / pixels.numPixels()), 255, 255));
-        }
-        pixels.show();
-        delay(wait);
-        firstPixelHue += 65536 / 90;
-    }
-}
-
 // Draw a line of color on the Neopixel strip
 void NeopixelHandler::drawLine(uint32_t color, int heading, int percent) {
     int center = map(heading, 359, 0, 0, NUMPIXELS - 1); // Correct the mapping to match your setup
@@ -67,4 +52,22 @@ void NeopixelHandler::drawLine(uint32_t color, int heading, int percent) {
         pixels.setPixelColor(index, color);
     }
     pixels.show(); // Show the updated colors
+}
+
+void NeopixelHandler::chase(uint32_t color, int frequency) {
+    // Clear all pixels first
+    pixels.clear();
+
+    // Illuminate every third pixel based on chaseIndex
+    for (int i = 0; i < NUMPIXELS; i++) {
+        if ((i + chaseIndex) % frequency == 0) {
+            pixels.setPixelColor(i, color);
+        }
+    }
+
+    // Update chaseIndex and wrap around if necessary
+    chaseIndex = (chaseIndex + 1) % frequency;
+
+    // Show the updated colors on the strip
+    pixels.show();
 }

@@ -1,3 +1,4 @@
+// main.cpp
 #include <Arduino.h>
 #include <Wire.h>
 #include <LSM303.h>
@@ -25,7 +26,7 @@ LSM303 compass;
 TinyGPSPlus gps;
 SoftwareSerial ss(GPS_RX, GPS_TX);  
 
-unsigned static long TICK = 100;
+unsigned static long TICK = 200;
 unsigned long tock = 0;     // Variable to store the time of the last heartbeat
 int prevRedBtnState = HIGH;
 int prevBluBtnState = HIGH;
@@ -33,7 +34,7 @@ int dest = 0;
 int course = 0;
 int spread = 1;
 float heading = 0;
-int mode = 1;                 // 0: Searching for GPS, 1: Showing course, -1: Error
+int mode = 0;                 // 0: Searching for GPS, 1: Showing course, -1: Error
 
 static void smartDelay(unsigned long ms) {
   unsigned long start = millis();
@@ -45,7 +46,7 @@ static void smartDelay(unsigned long ms) {
 void updatePixels() {
   switch (mode) {
     case 0:
-      neopixels.theaterChaseRainbow(500);
+      neopixels.chase(BLUE);
       break;
     case 1:
       neopixels.drawLine(TARGETS[dest].col, course, spread);
@@ -66,7 +67,7 @@ void updateDestination() {
 
 void pulseDestination(uint8_t wait) {
   neopixels.drawLine(WHITE, course, gps.satellites.isValid() + 1);
-  smartDelay(300);
+  smartDelay(25);
   neopixels.setColor(BLACK);
   for (int i = 1; i <= spread; i++) {
     neopixels.drawLine(TARGETS[dest].col, course, i);
@@ -93,8 +94,12 @@ void manageButtons() {
 }
 
 void setup(void) {
+  
+  neopixels.begin();
+  neopixels.setColor(BLACK);
   Serial.begin(BAUD_RATE);
   ss.begin(BAUD_RATE);
+  Serial.println("Setup online, starting serial...");
 
   pinMode(BTN_RED, INPUT_PULLUP);  // initialize push buttons
   pinMode(BTN_BLU, INPUT_PULLUP);
@@ -103,32 +108,13 @@ void setup(void) {
   compass.enableDefault();
   compass.m_min = (LSM303::vector<int16_t>){-608, -544, -495};  // get values using this: https://github.com/pololu/lsm303-arduino/tree/master/examples/Calibrate
   compass.m_max = (LSM303::vector<int16_t>){+369, +478, +418};
-  neopixels.begin();
 
   Serial.println("Hello world how are you!");
 
   tock = millis();
 }
-void loop(void) {
-  manageButtons();  // Monitor buttons & interrupt on click
 
-  if (millis() >= TICK + tock) {  // Update compass and GPS at a comfortable cadence
-    compass.read();
-    tock = millis();
-
-    double lat, lng;
-    if (!gps.location.isValid()) {
-      lat = DUMMY.lat;
-      lng = DUMMY.lng;
-      Serial.print("Reading from GPS... sentences: ");
-      Serial.print(gps.sentencesWithFix());
-      Serial.print(" chars: ");
-      Serial.println(gps.charsProcessed());
-    } else {
-      lat = gps.location.lat();
-      lng = gps.location.lng();
-    }
-
+void updateHeading(double lat, double lng) {
     heading = ALPHA * compass.heading() + (1 - ALPHA) * heading;  // Calculate course and spread
     int north = static_cast<int>(heading);
     double courseTo = gps.courseTo(lat, lng, TARGETS[dest].lat, TARGETS[dest].lng);
@@ -139,9 +125,31 @@ void loop(void) {
     char buffer[50];
     sprintf(buffer, "course: %d, spread: %d\n", course, spread);
     Serial.print(buffer);
-  Serial.print(TARGET_COUNT);
+}
+
+void loop(void) {
+  manageButtons();  // Monitor buttons & interrupt on click
+
+  if (millis() >= TICK + tock) {  // Update compass and GPS at a comfortable cadence
+    compass.read();
+    tock = millis();
+
+    mode = gps.location.isValid() ? 1 : 0;
+    
+    if (mode==0) {
+      // lat = DUMMY.lat;
+      // lng = DUMMY.lng;
+      Serial.print("Reading from GPS... sentences: ");
+      Serial.print(gps.sentencesWithFix());
+      Serial.print(" chars: ");
+      Serial.println(gps.charsProcessed());
+    } else if (mode ==1) {
+      updateHeading(gps.location.lat(), gps.location.lng());
+
+    }
+    Serial.println(tock);
     updatePixels();
   }
 
-  smartDelay(0);  // Ensure GPS data is processed continuously
+  smartDelay(10);  // Ensure GPS data is processed continuously
 }
