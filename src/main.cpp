@@ -28,7 +28,7 @@
 Button redButton(BTN_RED);
 Button blueButton(BTN_BLU);
 CompassHandler compass;
-NeoPixelAnimationManager pixels;
+NeoPixelAnimationManager pixelManager;
 
 // modes
 #define MODE_SEARCHING_FOR_GPS 0
@@ -36,15 +36,25 @@ NeoPixelAnimationManager pixels;
 #define MODE_ERROR -1
 int mode, prevMode = MODE_SEARCHING_FOR_GPS;
 
+// Animation control
+#define ANIMATION_DURATION 5000 // Duration for each animation in milliseconds
+unsigned long animationStartTime = 0;
+bool isAnimationActive = false;
+
 // Define callback functions
 void onRedButtonClick() {
     Serial.println("Red button clicked");
-    pixels.startAnimation(0); // Start chase animation
+    pixelManager.startAnimation(2); // Start rainbow animation
+    animationStartTime = millis();
+    isAnimationActive = true;
 }
 
 void onBlueButtonClick() {
     Serial.println("Blue button clicked");
-    pixels.startAnimation(1); // Start pulse animation
+    float northAngle = compass.getNorth(); // Get current north angle
+    pixelManager.startAnimation(3, northAngle); // Start arrow animation with current north angle
+    animationStartTime = millis();
+    isAnimationActive = true;
 }
 
 void setup(void) {
@@ -55,14 +65,24 @@ void setup(void) {
   blueButton.begin();
   blueButton.onClick(onBlueButtonClick);
   compass.begin();
-  pixels.begin();
+  pixelManager.begin();
 }
 
 void loop(void) {
-  blueButton.update();
-  redButton.update();
-  float north = compass.getNorth();
-  Serial.print("North: ");
-  Serial.println(north);
-  pixels.update();
+    blueButton.update();
+    redButton.update();
+    float north = compass.getNorth();
+    Serial.print("North: ");
+    Serial.println(north);
+
+    pixelManager.update(); // Ensure this is called frequently
+
+    // Check if the current animation has finished
+    if (isAnimationActive && (millis() - animationStartTime >= ANIMATION_DURATION)) {
+        // Stop the current animation and switch to the rainbow animation
+        isAnimationActive = false;
+        pixelManager.startAnimation(2); // Start rainbow animation
+        animationStartTime = millis();
+        isAnimationActive = true;
+    }
 }
