@@ -10,8 +10,8 @@
 #endif
 
 // pin definitions
-#define BTN_RED 5
-#define BTN_BLU 2
+#define BTN_RED 2
+#define BTN_BLU 5
 #define GPS_RX 4
 #define GPS_TX 3
 
@@ -23,12 +23,15 @@
 #include "Button.h"
 #include "CompassHandler.h"
 #include "NeoPixelAnimationManager.h"
+#include "GPS_Coordinates.h"
+#include "GPS_Handler.h"
 
 // sensors & devices
 Button redButton(BTN_RED);
 Button blueButton(BTN_BLU);
 CompassHandler compass;
 NeoPixelAnimationManager pixelManager;
+GPSHandler gps(GPS_RX, GPS_TX);
 
 // modes
 #define MODE_SEARCHING_FOR_GPS 0
@@ -44,17 +47,13 @@ bool isAnimationActive = false;
 // Define callback functions
 void onRedButtonClick() {
     Serial.println("Red button clicked");
-    pixelManager.startAnimation(2); // Start rainbow animation
-    animationStartTime = millis();
-    isAnimationActive = true;
+    float northAngle = compass.getNorth(); // Get current north angle
+    pixelManager.startAnimation(ANIM_ARROW, GREEN, northAngle, 40);
 }
 
 void onBlueButtonClick() {
     Serial.println("Blue button clicked");
-    float northAngle = compass.getNorth(); // Get current north angle
-    pixelManager.startAnimation(3, northAngle); // Start arrow animation with current north angle
-    animationStartTime = millis();
-    isAnimationActive = true;
+    
 }
 
 void setup(void) {
@@ -65,24 +64,16 @@ void setup(void) {
   blueButton.begin();
   blueButton.onClick(onBlueButtonClick);
   compass.begin();
+  gps.begin();
   pixelManager.begin();
+  pixelManager.startAnimation(ANIM_IDLE);
 }
 
 void loop(void) {
     blueButton.update();
     redButton.update();
     float north = compass.getNorth();
-    Serial.print("North: ");
-    Serial.println(north);
-
-    pixelManager.update(); // Ensure this is called frequently
-
-    // Check if the current animation has finished
-    if (isAnimationActive && (millis() - animationStartTime >= ANIMATION_DURATION)) {
-        // Stop the current animation and switch to the rainbow animation
-        isAnimationActive = false;
-        pixelManager.startAnimation(2); // Start rainbow animation
-        animationStartTime = millis();
-        isAnimationActive = true;
-    }
+    gps.update();
+    bool animIsPlaying = pixelManager.update(); // Ensure this is called frequently
+    if (!animIsPlaying) pixelManager.startAnimation(ANIM_IDLE, WHITE);
 }

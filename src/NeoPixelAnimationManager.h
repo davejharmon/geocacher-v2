@@ -4,31 +4,52 @@
 
 #include <Adafruit_NeoPixel.h>
 
+// Color definitions
+extern const uint32_t RED;
+extern const uint32_t GREEN;
+extern const uint32_t BLUE;
+extern const uint32_t WHITE;
+extern const uint32_t YELLOW;
+extern const uint32_t BLACK;
+
+// Animation definitions
+extern const uint8_t ANIM_WAKE_UP;
+extern const uint8_t ANIM_IDLE;
+extern const uint8_t ANIM_ARROW;
+
+class Animation {
+public:
+    // Constructor
+    Animation(uint32_t start, uint16_t duration, uint8_t type, uint32_t col=WHITE, int pos=0, int val=20);
+    bool isPlaying();
+    uint8_t type;
+    uint32_t color;
+    int position;
+    int value;
+private:
+    uint32_t start;
+    uint16_t duration;
+};
+
 class NeoPixelAnimationManager {
 public:
     NeoPixelAnimationManager();
     void begin();
-    void update();
-    void startAnimation(int animationType, float angle = 0.0);
+    bool update();
+    void startAnimation(uint8_t animationType, uint32_t col=WHITE, float angle = 0.0, int val = 50);
     
 private:
     static const uint8_t NEO_PIN = 6;
     static const uint16_t NUMPIXELS = 24;
     Adafruit_NeoPixel strip;
     uint32_t lastUpdateTime;
-    uint16_t animationDuration;
-    int currentAnimation;
-    float animationAngle;
-
+    Animation currentAnim;
     void runAnimation();
-    void animationChase();
-    void animationPulse();
-    void animationRainbow();
-    void animationArrow(float angle); // Update method signature
-    // Add other animations here
+    void animateRainbowChase();
+    void animateArrow();
 
-    static const uint32_t ANIMATION_INTERVAL = 50; // Time between updates in milliseconds
-    static const uint8_t RAINBOW_DELAY = 20;       // Delay for rainbow animation
+    static const uint32_t ANIMATION_INTERVAL = 200; // Time between updates in milliseconds
+    int step;
 };
 
 #endif

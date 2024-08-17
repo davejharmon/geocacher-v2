@@ -1,18 +1,18 @@
-// #ifndef GPS_COORDINATES_H
-// #define GPS_COORDINATES_H
+#ifndef GPS_COORDINATES_H
+#define GPS_COORDINATES_H
 
-// #include <stdint.h> // For uint32_t
+#include <stdint.h> // For uint32_t
 
-// // Define the GPS_Coordinate class
-// class GPS_Coordinate {
-// public:
-//     // Constructor
-//     GPS_Coordinate(double lat, double lon, uint32_t col);
+// Define the GPS_Coordinate class
+class GPS_Coordinate {
+public:
+    // Constructor
+    GPS_Coordinate(double lat, double lon, uint32_t col);
 
-//     // Member variables
-//     double latitude;
-//     double longitude;
-//     uint32_t color;
-// };
+    // Member variables
+    double latitude;
+    double longitude;
+    uint32_t color;
+};
 
-// #endif // GPS_COORDINATES_H
+#endif // GPS_COORDINATES_H
