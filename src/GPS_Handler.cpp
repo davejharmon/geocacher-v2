@@ -1,7 +1,7 @@
 #include "GPS_Handler.h"
 
 GPSHandler::GPSHandler(uint8_t rxPin, uint8_t txPin)
-    : gpsSerial(rxPin, txPin), lastDirection(0.0f) {
+    : gpsSerial(rxPin, txPin) {
 }
 
 void GPSHandler::begin() {
@@ -10,17 +10,35 @@ void GPSHandler::begin() {
 
 void GPSHandler::update() {
     while (gpsSerial.available() > 0) {
-        gps.encode(gpsSerial.read());
-        
-        if (gps.location.isUpdated()) {
-            // Example: Calculate direction based on GPS data.
-            // Note: TinyGPSPlus does not provide direction directly. You may need to calculate direction based on latitude and longitude.
-            // This is a placeholder for where you would implement your direction logic.
-            lastDirection = gps.location.lat(); // Example: Use latitude as placeholder
-        }
+        gps.encode(gpsSerial.read());    
     }
 }
 
-float GPSHandler::getDirection() {
-    return lastDirection;
+double GPSHandler::getDirection(GPS_Coordinate target) {
+    return gps.courseTo(gps.location.lat(), gps.location.lng(), target.latitude, target.longitude);
+}
+
+bool GPSHandler::isValid() {
+    return gps.location.isValid();
+}
+
+void GPSHandler::debug() {
+    static int lastSatellites = -1; // Initialize with an impossible value to ensure the first print
+    static String lastStatus = "";
+    static int lastFailed = -1;
+
+    int satellites = gps.satellites.value();
+    String status = gps.location.isValid() ? "GPS Fix acquired" : "No GPS Fix";
+    int failed = gps.failedChecksum();
+
+    // Check if any value has changed
+    if (satellites != lastSatellites || status != lastStatus || failed != lastFailed) {
+        String debugLine =  status + ", Satellites: " + String(satellites) + ", Failed checksums: " + String(failed) + " ";
+        Serial.println(debugLine);
+
+        // Update the stored values to the current ones
+        lastSatellites = satellites;
+        lastStatus = status;
+        lastFailed = failed;
+    }
 }

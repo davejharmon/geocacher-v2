@@ -3,18 +3,20 @@
 
 #include <TinyGPSPlus.h>
 #include <SoftwareSerial.h>
+#include <GPS_Coordinates.h>
 
 class GPSHandler {
 public:
     GPSHandler(uint8_t rxPin, uint8_t txPin);
     void begin();
     void update();
-    float getDirection();
+    double getDirection(GPS_Coordinate target);
+    bool isValid();
+    void debug();
 
 private:
     SoftwareSerial gpsSerial;
     TinyGPSPlus gps;
-    float lastDirection;
 };
 
 #endif

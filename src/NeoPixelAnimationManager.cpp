@@ -13,6 +13,7 @@ const uint32_t YELLOW = Adafruit_NeoPixel::Color(255, 255, 20);
 const uint8_t ANIM_WAKE_UP = 0;
 const uint8_t ANIM_IDLE = 1;
 const uint8_t ANIM_ARROW = 2;
+const uint8_t ANIM_NAVIGATE_TO = 3;
 
 // Constructor Implementation
 Animation::Animation(uint32_t start, uint16_t duration, uint8_t type, uint32_t col, int pos, int val) 
@@ -48,8 +49,6 @@ bool NeoPixelAnimationManager::update() {
             runAnimation();
         }
         lastUpdateTime = currentTime;
-        Serial.print("Millis:");
-        Serial.println(currentTime);
     }
     return currentAnim.isPlaying();
 }
@@ -58,7 +57,7 @@ bool NeoPixelAnimationManager::update() {
 void NeoPixelAnimationManager::startAnimation(uint8_t animationType, uint32_t col, float angle, int val) {
     uint32_t startTime = millis();
     step=0;
-    uint8_t pos = static_cast<int>(angle / 360.0 * strip.numPixels());
+    uint8_t pos = static_cast<uint8_t>((angle / 360.0) * strip.numPixels());
     uint32_t duration=0;
     switch (animationType) {
         case ANIM_WAKE_UP:
@@ -70,6 +69,9 @@ void NeoPixelAnimationManager::startAnimation(uint8_t animationType, uint32_t co
         case ANIM_ARROW:
             int steps = static_cast<int>(val / 100.0 * strip.numPixels());
             duration=steps*ANIMATION_INTERVAL;
+            break;
+        case ANIM_NAVIGATE_TO:
+            duration=0;
             break;
         default:
             break;
@@ -90,6 +92,9 @@ void NeoPixelAnimationManager::runAnimation() {
         case ANIM_ARROW:
             animateArrow();
             break;
+        case ANIM_NAVIGATE_TO:
+            animateNavigator();
+            break;
         default:
             break;
     }
@@ -97,11 +102,10 @@ void NeoPixelAnimationManager::runAnimation() {
 }
 
 void NeoPixelAnimationManager::animateRainbowChase() {
-    uint16_t hue = (65535/24)*step;    
+    uint16_t hue = (65535 / 24) * step;
     strip.rainbow(hue);
     strip.show();
-    step+=1;
-    if (step>=24) {step=0;}
+    step = (step + 1) % 24;
 }
 
 void NeoPixelAnimationManager::animateArrow() {
@@ -114,4 +118,24 @@ void NeoPixelAnimationManager::animateArrow() {
     }
     strip.show();
     step+=1;
+}
+
+void NeoPixelAnimationManager::animateNavigator() {
+    // Calculate the length of the segment to be illuminated
+    int length = static_cast<int>(currentAnim.value / 100.0 * strip.numPixels());
+    Serial.print("length: ");
+    Serial.print(length);
+    // Calculate start position, ensuring it is within the range [0, strip.numPixels()-1]
+    int startPos = (currentAnim.position - length / 2 + strip.numPixels()) % strip.numPixels();
+    Serial.print(" Start: ");
+    Serial.println(startPos);
+    // Illuminate the segment
+    for (int i = 0; i < length; i++) {
+        // Calculate the pixel position with wrapping
+        int pos = (startPos + i) % strip.numPixels();
+        strip.setPixelColor(pos, currentAnim.color);
+    }
+    
+    // Show the updated strip
+    strip.show();
 }

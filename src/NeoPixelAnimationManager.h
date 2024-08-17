@@ -16,6 +16,7 @@ extern const uint32_t BLACK;
 extern const uint8_t ANIM_WAKE_UP;
 extern const uint8_t ANIM_IDLE;
 extern const uint8_t ANIM_ARROW;
+extern const uint8_t ANIM_NAVIGATE_TO;
 
 class Animation {
 public:
@@ -47,6 +48,7 @@ private:
     void runAnimation();
     void animateRainbowChase();
     void animateArrow();
+    void animateNavigator();
 
     static const uint32_t ANIMATION_INTERVAL = 200; // Time between updates in milliseconds
     int step;

@@ -9,7 +9,7 @@ public:
     CompassHandler();
 
     void begin();
-    int getNorth(); // Returns the angle in degrees
+    float getNorth(); // Returns the angle in degrees
 
 private:
     LSM303 lsm;

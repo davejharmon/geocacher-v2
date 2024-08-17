@@ -15,4 +15,7 @@ public:
     uint32_t color;
 };
 
+// External array of GPS coordinates
+extern GPS_Coordinate locations[];
+
 #endif // GPS_COORDINATES_H
