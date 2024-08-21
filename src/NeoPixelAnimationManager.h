@@ -22,7 +22,7 @@ class Animation {
 public:
     // Constructor
     Animation(uint32_t start, uint16_t duration, uint8_t type, uint32_t col=WHITE, int pos=0, int val=20);
-    bool isPlaying();
+    int isPlaying();
     uint8_t type;
     uint32_t color;
     int position;
@@ -38,6 +38,7 @@ public:
     void begin();
     bool update();
     void startAnimation(uint8_t animationType, uint32_t col=WHITE, float angle = 0.0, int val = 50);
+    bool isInterruptible();
     
 private:
     static const uint8_t NEO_PIN = 6;

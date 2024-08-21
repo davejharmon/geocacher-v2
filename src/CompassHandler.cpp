@@ -12,8 +12,9 @@ void CompassHandler::begin() {
 float CompassHandler::getNorth() {
     lsm.read();
     float rawHeading = lsm.heading();
-    float reversedHeading = rawHeading < 180 ? rawHeading + 180.0  : rawHeading -180.0;
-
+    float reversedHeading = -rawHeading + 120.0;  // compass constant offset (offset for mounting reversed & position)
+    while (reversedHeading >  360.0) reversedHeading -= 360.0;
+    while (reversedHeading <    0.0) reversedHeading += 360.0;    // reversedHeading +=180;
     // heading = alpha * rawHeading + (1 - alpha) * heading;
     // int north = static_cast<int>(rawHeading);
     return reversedHeading;

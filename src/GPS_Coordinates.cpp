@@ -13,3 +13,5 @@ GPS_Coordinate locations[] = {
     GPS_Coordinate(-33.918216637305314, 151.1045469768015, BLUE),   // CNR CANTERBURY
     GPS_Coordinate(-33.92124868722235, 151.10657241841565, YELLOW) // CNR CROSS
 };
+
+const uint8_t MAX_TARGETS=sizeof(locations) / sizeof(locations[0]);

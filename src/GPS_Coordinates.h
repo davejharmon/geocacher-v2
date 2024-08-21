@@ -18,4 +18,6 @@ public:
 // External array of GPS coordinates
 extern GPS_Coordinate locations[];
 
+extern const uint8_t MAX_TARGETS;
+
 #endif // GPS_COORDINATES_H

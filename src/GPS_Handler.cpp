@@ -18,6 +18,12 @@ double GPSHandler::getDirection(GPS_Coordinate target) {
     return gps.courseTo(gps.location.lat(), gps.location.lng(), target.latitude, target.longitude);
 }
 
+// distance to target in meters
+double GPSHandler::getDistance(GPS_Coordinate target) {
+    return gps.distanceBetween(gps.location.lat(), gps.location.lng(), target.latitude, target.longitude);
+}
+
+
 bool GPSHandler::isValid() {
     return gps.location.isValid();
 }

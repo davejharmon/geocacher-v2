@@ -11,6 +11,7 @@ public:
     void begin();
     void update();
     double getDirection(GPS_Coordinate target);
+    double getDistance(GPS_Coordinate target);
     bool isValid();
     void debug();
 

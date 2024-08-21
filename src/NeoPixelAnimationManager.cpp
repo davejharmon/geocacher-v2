@@ -23,9 +23,10 @@ Animation::Animation(uint32_t start, uint16_t duration, uint8_t type, uint32_t c
 }
 
 // Method to check if the animation is currently playing
-bool Animation::isPlaying() {
+int Animation::isPlaying() {
     uint32_t currentTime = millis();
-    return (duration==0 || (currentTime - start) < duration);
+    if (duration==0) return -1;
+    return (currentTime-start) < duration ? 0 : 1;
 }
 
 // NeoPixelAnimationManager Constructor
@@ -59,6 +60,7 @@ void NeoPixelAnimationManager::startAnimation(uint8_t animationType, uint32_t co
     step=0;
     uint8_t pos = static_cast<uint8_t>((angle / 360.0) * strip.numPixels());
     uint32_t duration=0;
+
     switch (animationType) {
         case ANIM_WAKE_UP:
             duration=2000;
@@ -84,6 +86,7 @@ void NeoPixelAnimationManager::runAnimation() {
     strip.clear();
     switch (currentAnim.type) {
         case ANIM_WAKE_UP:
+            animateRainbowChase();  // TODO: Busted
             // Implement wake up animation logic
             break;
         case ANIM_IDLE:
@@ -99,6 +102,11 @@ void NeoPixelAnimationManager::runAnimation() {
             break;
     }
 
+}
+
+// Check if an animation is playing
+bool NeoPixelAnimationManager::isInterruptible() {
+    return currentAnim.isPlaying() < 1; // interruptible or not playing
 }
 
 void NeoPixelAnimationManager::animateRainbowChase() {
@@ -123,12 +131,8 @@ void NeoPixelAnimationManager::animateArrow() {
 void NeoPixelAnimationManager::animateNavigator() {
     // Calculate the length of the segment to be illuminated
     int length = static_cast<int>(currentAnim.value / 100.0 * strip.numPixels());
-    Serial.print("length: ");
-    Serial.print(length);
     // Calculate start position, ensuring it is within the range [0, strip.numPixels()-1]
     int startPos = (currentAnim.position - length / 2 + strip.numPixels()) % strip.numPixels();
-    Serial.print(" Start: ");
-    Serial.println(startPos);
     // Illuminate the segment
     for (int i = 0; i < length; i++) {
         // Calculate the pixel position with wrapping
