@@ -30,7 +30,7 @@
 Button redButton(BTN_RED);
 Button blueButton(BTN_BLU);
 CompassHandler compass;
-NeoPixelAnimationManager pixelManager;
+NeoPixelAnimationManager pixels;
 GPSHandler gps(GPS_RX, GPS_TX);
 
 // modes
@@ -38,6 +38,8 @@ GPSHandler gps(GPS_RX, GPS_TX);
 #define MODE_HAS_VALID_GPS 1
 #define MODE_HEADING_TO_TARGET 2
 #define MODE_ERROR -1
+
+
 int mode = MODE_SEARCHING_FOR_GPS;
 int target=0;
 
@@ -46,78 +48,60 @@ int target=0;
 void onRedButtonClick() {
     Serial.println("Red button clicked");
     float northAngle = compass.getNorth(); // Get current north angle
-    pixelManager.startAnimation(ANIM_WAKE_UP, GREEN, northAngle, 40);
 }
 
 void onBlueButtonClick() {
     Serial.println("Blue button clicked");
     target = (target + 1) % MAX_TARGETS;
-
-    
+    pixels.startAnimation(ANIM_WIPE,locations[target].color);
 }
 
 void setup(void) {
   Serial.begin(BAUD_RATE);
-  
   Serial.println("Hello world how are you!");
   redButton.begin();
   redButton.onClick(onRedButtonClick);
   blueButton.begin();
   blueButton.onClick(onBlueButtonClick);
   compass.begin();
-  pixelManager.begin();
-  pixelManager.startAnimation(ANIM_IDLE);
+  pixels.begin();
+  pixels.startAnimation(0,GREEN);
   gps.begin();
 }
 
 void navigateToNorth() {
-  
     float north = compass.getNorth();
-    int distanceTo = 5;
-    pixelManager.startAnimation(ANIM_NAVIGATE_TO,WHITE,north,distanceTo);
+    int distance = 25;
+    pixels.startAnimation(ANIM_ARROW,WHITE,north,distance);
 }
 
-void navigateToTarget() {
-  
+void navigateToTarget() {  
     float north = compass.getNorth();
     double heading = gps.getDirection(locations[target]);
     double distanceBetween = gps.getDistance(locations[target]);
     int distancePercent = 100-(distanceBetween/MAX_DISTANCE*100); 
     float course=north-heading;
     if (course < 0) course+=360.0;
-    pixelManager.startAnimation(ANIM_NAVIGATE_TO,locations[target].color,course,distancePercent);
+      pixels.startAnimation(ANIM_ARROW,locations[target].color,course,distancePercent);
 }
 
 void loop(void) {
-    blueButton.update();
-    redButton.update();
-    gps.update();
-    if (pixelManager.isInterruptible()) {
+    bool playing = pixels.update();
+      blueButton.update();
+      redButton.update();
+      gps.update();
+    if (!playing) { // If not playing, find a fallback animation
       switch (mode) {
         case MODE_SEARCHING_FOR_GPS: // MODE_SEARCHING_FOR_GPS
-            if (gps.isValid()) {
-              mode = MODE_HAS_VALID_GPS;
-              navigateToTarget();
-            } else {
-              navigateToNorth();
-              gps.debug();
-            };
-            break;
-        case MODE_HAS_VALID_GPS:
-          if (gps.isValid()) {
-          navigateToTarget();
-          }
-          else {
-            mode = MODE_SEARCHING_FOR_GPS;
-            pixelManager.startAnimation(ANIM_IDLE);
-          }
+          pixels.startAnimation(ANIM_RAINBOW);
           break;
-          default:
-            break;
+        case MODE_HAS_VALID_GPS:
+          navigateToTarget();
+          break;
+        default:
+          break;
       }
-  }
+    }
 
-    bool animIsPlaying = pixelManager.update(); // Ensure this is called frequently
-    if (!animIsPlaying) pixelManager.startAnimation(ANIM_IDLE, WHITE);
-}
+  }
 

@@ -1,38 +1,37 @@
-// NeoPixelAnimationManager.cpp
 #include "NeoPixelAnimationManager.h"
 
-// Color definitions
-const uint32_t RED    = Adafruit_NeoPixel::Color(255, 0, 0);
-const uint32_t GREEN  = Adafruit_NeoPixel::Color(0, 255, 0);
-const uint32_t BLUE   = Adafruit_NeoPixel::Color(0, 0, 255);
-const uint32_t WHITE  = Adafruit_NeoPixel::Color(255, 255, 255);
-const uint32_t BLACK  = Adafruit_NeoPixel::Color(0, 0, 0);
+// Color library definitions
+const uint32_t RED = Adafruit_NeoPixel::Color(255, 0, 0);
+const uint32_t GREEN = Adafruit_NeoPixel::Color(0, 255, 0);
+const uint32_t BLUE = Adafruit_NeoPixel::Color(0, 0, 255);
+const uint32_t WHITE = Adafruit_NeoPixel::Color(255, 255, 255);
+const uint32_t BLACK = Adafruit_NeoPixel::Color(0, 0, 0);
 const uint32_t YELLOW = Adafruit_NeoPixel::Color(255, 255, 20);
 
-// Animation definitions
-const uint8_t ANIM_WAKE_UP = 0;
-const uint8_t ANIM_IDLE = 1;
+const uint8_t ANIM_WIPE = 0;
+const uint8_t ANIM_RAINBOW = 1;
 const uint8_t ANIM_ARROW = 2;
-const uint8_t ANIM_NAVIGATE_TO = 3;
 
-// Constructor Implementation
-Animation::Animation(uint32_t start, uint16_t duration, uint8_t type, uint32_t col, int pos, int val) 
-    : type(type), color(col), position(pos), value(val), start(start), duration(duration)
-{
-    // Constructor body (if needed)
+
+// Constructor for the Animation class
+Animation::Animation(uint8_t type, uint32_t col, uint8_t pos, uint8_t val, uint32_t start, uint16_t duration)
+    : type(type), color(col), position(pos), value(val), start(start), duration(calculateDuration(type, val)) {
+    isInterruptable = true; // Adjust logic for `isInterruptable` as needed
 }
 
-// Method to check if the animation is currently playing
-int Animation::isPlaying() {
-    uint32_t currentTime = millis();
-    if (duration==0) return -1;
-    return (currentTime-start) < duration ? 0 : 1;
+uint16_t Animation::calculateDuration(uint8_t type, uint8_t val) {
+    switch(type) {
+        case ANIM_WIPE: return NUMPIXELS * ANIMATION_INTERVAL;
+        case ANIM_RAINBOW: return NUMPIXELS * ANIMATION_INTERVAL;
+        case ANIM_ARROW: return 1000;
+        default: break;
+    }
+    return 1000; // Default duration
 }
 
-// NeoPixelAnimationManager Constructor
+// Constructor for the NeoPixelAnimationManager class
 NeoPixelAnimationManager::NeoPixelAnimationManager()
-    : strip(NUMPIXELS, NEO_PIN, NEO_GRB + NEO_KHZ800), lastUpdateTime(0), currentAnim(0, 0, ANIM_IDLE,WHITE,0,0)
-{
+    : strip(NUMPIXELS, NEO_PIN, NEO_GRB + NEO_KHZ800), lastUpdateTime(0), step(0), currentAnim() {
 }
 
 // Initialize the NeoPixel strip
@@ -46,100 +45,102 @@ void NeoPixelAnimationManager::begin() {
 bool NeoPixelAnimationManager::update() {
     uint32_t currentTime = millis();
     if (currentTime - lastUpdateTime >= ANIMATION_INTERVAL) {
-        if (currentAnim.isPlaying()) {
-            runAnimation();
-        }
         lastUpdateTime = currentTime;
+        runAnimation();
     }
-    return currentAnim.isPlaying();
+
+    if (currentAnim.start+currentAnim.duration > currentTime) return true;
+    return false;
 }
 
-// Start a specific animation based on type and parameters
-void NeoPixelAnimationManager::startAnimation(uint8_t animationType, uint32_t col, float angle, int val) {
-    uint32_t startTime = millis();
-    step=0;
-    uint8_t pos = static_cast<uint8_t>((angle / 360.0) * strip.numPixels());
-    uint32_t duration=0;
-
-    switch (animationType) {
-        case ANIM_WAKE_UP:
-            duration=2000;
-            break;
-        case ANIM_IDLE:
-            duration=0;
-            break;
-        case ANIM_ARROW:
-            int steps = static_cast<int>(val / 100.0 * strip.numPixels());
-            duration=steps*ANIMATION_INTERVAL;
-            break;
-        case ANIM_NAVIGATE_TO:
-            duration=0;
-            break;
-        default:
-            break;
-    }
-    currentAnim = Animation(startTime, duration, animationType, col, pos, val);
+// Start a specific animation, returns end time
+uint16_t NeoPixelAnimationManager::startAnimation(uint8_t animationType, uint32_t col, float angle, uint8_t val) {
+    currentAnim = Animation(animationType, col, angle, val, millis());
+    step = 0; // Reset step for new animation
+//    Serial.println("Starting new animation...");
+    return currentAnim.start + currentAnim.duration;
 }
 
-// Private method to run the current animation
+// Try and interrupt the current animation, returns true if interruptible, false if failed to interrupt
+bool NeoPixelAnimationManager::interrupt() {
+    if (currentAnim.isInterruptable) {
+        // Stop the current animation and reset strip
+        strip.clear();
+        strip.show();
+        return true;
+    }
+    return false;
+}
+
+// Private methods
+
+// Run the current animation based on its type
 void NeoPixelAnimationManager::runAnimation() {
-    strip.clear();
     switch (currentAnim.type) {
-        case ANIM_WAKE_UP:
-            animateRainbowChase();  // TODO: Busted
-            // Implement wake up animation logic
+        case ANIM_WIPE:
+            animateWipe();
             break;
-        case ANIM_IDLE:
+        case ANIM_RAINBOW:
             animateRainbowChase();
             break;
         case ANIM_ARROW:
             animateArrow();
             break;
-        case ANIM_NAVIGATE_TO:
-            animateNavigator();
-            break;
         default:
             break;
     }
-
 }
 
-// Check if an animation is playing
-bool NeoPixelAnimationManager::isInterruptible() {
-    return currentAnim.isPlaying() < 1; // interruptible or not playing
+// Wipe the strip with one color
+void NeoPixelAnimationManager::animateWipe() {
+    if (step < NUMPIXELS) {
+        strip.setPixelColor(step, currentAnim.color);
+        strip.show();
+        step++;
+    } else {
+        step = 0; // Reset the step for future wipes
+    }
 }
 
 void NeoPixelAnimationManager::animateRainbowChase() {
-    uint16_t hue = (65535 / 24) * step;
-    strip.rainbow(hue);
+    // Calculate the starting hue based on the step
+    uint16_t startHue = (step * 65536L / NUMPIXELS) % 65536;
+   strip.rainbow(startHue, 1, 255, 255, true);
+
+    // Update the strip to show the changes
     strip.show();
-    step = (step + 1) % 24;
+
+    // Increment step and wrap around
+    step = (step + 1) % NUMPIXELS;
 }
 
+// Draw a line centered on a position (arrow animation)
 void NeoPixelAnimationManager::animateArrow() {
-    int startPos=currentAnim.position-step/2;
-    for (int i=0;i<step;i++) {
-        int pos = startPos+i;
-        if (pos < 0) pos +=strip.numPixels();
-        if (pos >strip.numPixels()-1) pos-=strip.numPixels();
-        strip.setPixelColor(pos,currentAnim.color);
-    }
-    strip.show();
-    step+=1;
-}
+    strip.clear();
+    int centerPixel = map(currentAnim.position, 0, 360, 0, NUMPIXELS);
+    int length = map(currentAnim.value, 0,100,0,NUMPIXELS);
+    int startPixel = centerPixel - length / 2;
+    int endPixel = centerPixel + length / 2 - 1;
 
-void NeoPixelAnimationManager::animateNavigator() {
-    // Calculate the length of the segment to be illuminated
-    int length = static_cast<int>(currentAnim.value / 100.0 * strip.numPixels());
-    // Calculate start position, ensuring it is within the range [0, strip.numPixels()-1]
-    int startPos = (currentAnim.position - length / 2 + strip.numPixels()) % strip.numPixels();
-    // Illuminate the segment
-    for (int i = 0; i < length; i++) {
-        // Calculate the pixel position with wrapping
-        int pos = (startPos + i) % strip.numPixels();
-        strip.setPixelColor(pos, currentAnim.color);
+    if (length >= NUMPIXELS) {
+        // If length is equal to or greater than the total number of pixels,
+        // fill the entire strip
+        strip.fill(currentAnim.color);
+    } else {
+        if (startPixel < 0) {
+            // Handle wrapping if startPixel is negative
+            strip.fill(currentAnim.color, NUMPIXELS + startPixel, NUMPIXELS - startPixel);
+            strip.fill(currentAnim.color, 0, endPixel + 1);
+        } else if (endPixel >= NUMPIXELS) {
+            // Handle wrapping if endPixel exceeds NUMPIXELS
+            strip.fill(currentAnim.color, startPixel, NUMPIXELS - startPixel);
+            strip.fill(currentAnim.color, 0, endPixel % NUMPIXELS + 1);
+        } else {
+            // No wrapping needed, normal fill
+            strip.fill(currentAnim.color, startPixel, length);
+        }
     }
-    
-    // Show the updated strip
+    // Update the strip to show the changes
     strip.show();
+
 }
