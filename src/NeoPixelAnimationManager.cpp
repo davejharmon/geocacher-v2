@@ -11,7 +11,7 @@ const uint32_t YELLOW = Adafruit_NeoPixel::Color(255, 255, 20);
 const uint8_t ANIM_WIPE = 0;
 const uint8_t ANIM_RAINBOW = 1;
 const uint8_t ANIM_ARROW = 2;
-
+const uint8_t ANIM_PULSE_ARROW = 3;
 
 // Constructor for the Animation class
 Animation::Animation(uint8_t type, uint32_t col, uint8_t pos, uint8_t val, uint32_t start, uint16_t duration)
@@ -23,7 +23,11 @@ uint16_t Animation::calculateDuration(uint8_t type, uint8_t val) {
     switch(type) {
         case ANIM_WIPE: return NUMPIXELS * ANIMATION_INTERVAL;
         case ANIM_RAINBOW: return NUMPIXELS * ANIMATION_INTERVAL;
-        case ANIM_ARROW: return 1000;
+        case ANIM_ARROW: return ANIMATION_INTERVAL;
+        case ANIM_PULSE_ARROW:
+            Serial.print("duration ");
+            Serial.println(ANIMATION_INTERVAL*(NUMPIXELS*val/100));
+            return ANIMATION_INTERVAL*(NUMPIXELS*val/100);
         default: break;
     }
     return 1000; // Default duration
@@ -49,7 +53,8 @@ bool NeoPixelAnimationManager::update() {
         runAnimation();
     }
 
-    if (currentAnim.start+currentAnim.duration > currentTime) return true;
+    if (currentAnim.start+currentAnim.duration >= currentTime) return true;
+    Serial.print("animation ended");
     return false;
 }
 
@@ -86,6 +91,9 @@ void NeoPixelAnimationManager::runAnimation() {
         case ANIM_ARROW:
             animateArrow();
             break;
+        case ANIM_PULSE_ARROW:
+            animatePulseArrow();
+            break;            
         default:
             break;
     }
@@ -143,4 +151,38 @@ void NeoPixelAnimationManager::animateArrow() {
     // Update the strip to show the changes
     strip.show();
 
+}
+
+// Draw a line centered on a position (pulse arrow animation)
+void NeoPixelAnimationManager::animatePulseArrow() {
+  // Clear the strip
+    strip.clear();
+    // Calculate center and length
+    int centerPixel = map(currentAnim.position, 0, 360, 0, NUMPIXELS);
+    int length = map(currentAnim.value, 0, 100, 0, NUMPIXELS);
+
+    // Calculate start pixel
+    int startPixel = centerPixel - length / 2;
+
+    // Draw the line
+    for (int i = 0; i < length; ++i) {
+        int pixel = (startPixel + i) % NUMPIXELS;
+        if (pixel < 0) pixel += NUMPIXELS; // Handle negative pixel index
+        uint32_t col = currentAnim.color;
+
+        // Check if the pixel should be WHITE based on step
+        if (pixel == (centerPixel - step/2) || pixel == (centerPixel + step/2)) {
+            col = WHITE;
+        }
+
+        // Set pixel color
+        strip.setPixelColor(pixel, col);
+    }
+
+    // Update the strip
+    strip.show();
+
+    // Increment step and wrap around
+    step++;
+    if (step >= length) step=0;
 }

@@ -16,7 +16,7 @@ extern const uint32_t YELLOW;
 extern const uint8_t ANIM_WIPE;
 extern const uint8_t ANIM_RAINBOW;
 extern const uint8_t ANIM_ARROW;
-
+extern const uint8_t ANIM_PULSE_ARROW;
 
 // Constants
 const uint16_t NUMPIXELS = 24;           // Number of NeoPixels
@@ -64,6 +64,7 @@ private:
     void animateWipe();         // wipe the strip with one colour
     void animateRainbowChase(); // loopable rainbow chase
     void animateArrow();        // draw a line centred on a position
+    void animatePulseArrow();   // draw a line that pulses
 };
 
 #endif // NEOPIXELANIMATIONMANAGER_H
