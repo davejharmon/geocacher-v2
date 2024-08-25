@@ -10,6 +10,7 @@ public:
     void begin();
     void update();
     bool isClicked();
+    unsigned long getPressDuration(); // Get the duration the button was pressed
 
     // Callback function
     void onClick(void (*callback)());
@@ -21,6 +22,8 @@ private:
 
     bool buttonState = false;
     bool lastButtonState = false;
+    unsigned long pressStartTime = 0; // Time when button is first pressed
+    unsigned long pressDuration = 0; // Duration of button press
     void (*clickCallback)() = nullptr;
 
     void handleButtonPress();

@@ -11,7 +11,15 @@ void Button::update() {
 }
 
 bool Button::isClicked() {
-    return !buttonState; // Active-low button
+    return buttonState; // Active-low button
+}
+
+unsigned long Button::getPressDuration() {
+    if (buttonState) {
+        return millis() - pressStartTime; // If button is still pressed, calculate duration
+    } else {
+        return pressDuration; // If button is released, return stored duration
+    }
 }
 
 void Button::onClick(void (*callback)()) {
@@ -29,8 +37,13 @@ void Button::handleButtonPress() {
         if (reading != buttonState) {
             buttonState = reading;
 
-            if (buttonState == LOW && clickCallback != nullptr) {
-                clickCallback();
+            if (buttonState == LOW) { // Button just pressed
+                pressStartTime = millis(); // Record the time when button was pressed
+            } else { // Button just released
+                pressDuration = millis() - pressStartTime; // Calculate and store the duration
+                if (clickCallback != nullptr) {
+                    clickCallback();
+                }
             }
         }
     }
