@@ -51,12 +51,14 @@ void NeoPixelAnimationManager::begin() {
 bool NeoPixelAnimationManager::update() {
     uint32_t currentTime = millis();
     
+    // if its an update tick update
     if (currentTime - lastUpdateTime >= ANIMATION_INTERVAL) {
         lastUpdateTime = currentTime;
         runAnimation();
     }
 
-    if (currentAnim.start + currentAnim.duration <= currentTime) {
+    // if your time is up restore or end
+    if (currentAnim.start + currentAnim.duration + ANIMATION_INTERVAL <= currentTime) {
         if (currentAnim.restoreOnEnd) {
             restore(); // Restore the previous animation
             return true;
@@ -64,29 +66,30 @@ bool NeoPixelAnimationManager::update() {
         return false;
     }
     
+    // if you didn't end, return true
     return true;
 }
 
 
 uint16_t NeoPixelAnimationManager::startAnimation(uint8_t animationType, uint32_t col, float angle, uint8_t val, boolean restoreOnEnd) {
-    if (!prevAnimation.restoreOnEnd) {
-        strip.clear(); // Clear the strip only if `restoreOnEnd` is false for the previous animation
-    }
     
     for (int i = 0; i < NUMPIXELS; i++) {
         state[i] = strip.getPixelColor(i);
     }
+    strip.clear();
     
     if (animationType!=prevAnimation.type) {    
         Serial.print("Starting new animation... Dur:");
         Serial.println(currentAnim.duration);
     }
 
-    prevAnimation = currentAnim; // Save the current animation for restoration
-    prevAnimation.duration=prevAnimation.duration-(millis()-prevAnimation.start);
-    currentAnim = Animation(animationType, col, angle, val, millis(),restoreOnEnd);
-    
-    
+    prevAnimation = currentAnim;                                                        // Save the current animation for restoration
+    if (restoreOnEnd) {
+        prevAnimation.duration=prevAnimation.duration-(millis()-prevAnimation.start);   // if previous animation wasn't complete, save remaining duration
+    }
+    int8_t pos =static_cast<int>(angle / 360.0 * (NUMPIXELS - 1));
+    currentAnim = Animation(animationType, col, pos, val, millis());
+    currentAnim.restoreOnEnd=restoreOnEnd;
     return currentAnim.start + currentAnim.duration;
 }
 
@@ -113,7 +116,6 @@ void NeoPixelAnimationManager::restore() {
         strip.setPixelColor(i, state[i]);
     }
     strip.show();
-    Serial.println("RESTORING");
     // Restore the previous animation state
     currentAnim = prevAnimation;
     currentAnim.start=millis();
@@ -169,42 +171,53 @@ void NeoPixelAnimationManager::animateRainbowChase() {
     currentAnim.step = (currentAnim.step + 1) % NUMPIXELS;
 }
 
-// Draw a line centered on a position (arrow animation)
 void NeoPixelAnimationManager::animateArrow() {
-    strip.clear();
-    int centerPixel = map(currentAnim.position, 0, 360, 0, NUMPIXELS);
-    int length = map(currentAnim.value, 0, 100, 0, NUMPIXELS);
-    int startPixel = centerPixel - length / 2;
-    int endPixel = centerPixel + length / 2 - 1;
+    strip.clear();  // Clear the neopixel strip
+    Serial.print(" angle: ");
+    Serial.print(currentAnim.position);
+    
+    int centerPixel = currentAnim.position;  // Convert the angle to a neopixel on the strip
+    int length = map(currentAnim.value, 0, 100, 0, NUMPIXELS);  // Calculate the length as a percentage of the strip based on currentAnim.value
 
-    if (length >= NUMPIXELS) {
-        // If length is equal to or greater than the total number of pixels,
-        // fill the entire strip
-        strip.fill(currentAnim.color);
+    // Compute start and end pixel indices
+    int startPixel = centerPixel - (length / 2);
+    int endPixel = centerPixel + (length / 2);
+
+    // Handle wrapping around the strip
+    if (startPixel < 0) {
+        // Line wraps around the start of the strip
+        for (int i = startPixel; i < 0; ++i) {
+            strip.setPixelColor(NUMPIXELS + i, currentAnim.color);  // Wrap around to end of strip
+        }
+        for (int i = 0; i <= endPixel; ++i) {
+            strip.setPixelColor(i, currentAnim.color);  // Continue drawing from start of strip
+        }
+    } else if (endPixel >= NUMPIXELS) {
+        // Line wraps around the end of the strip
+        for (int i = startPixel; i <= NUMPIXELS - 1; ++i) {
+            strip.setPixelColor(i, currentAnim.color);  // Continue drawing to end of strip
+        }
+        for (int i = 0; i <= endPixel % NUMPIXELS; ++i) {
+            strip.setPixelColor(i, currentAnim.color);  // Wrap around to start of strip
+        }
     } else {
-        if (startPixel < 0) {
-            // Handle wrapping if startPixel is negative
-            strip.fill(currentAnim.color, NUMPIXELS + startPixel, NUMPIXELS - startPixel);
-            strip.fill(currentAnim.color, 0, endPixel + 1);
-        } else if (endPixel >= NUMPIXELS) {
-            // Handle wrapping if endPixel exceeds NUMPIXELS
-            strip.fill(currentAnim.color, startPixel, NUMPIXELS - startPixel);
-            strip.fill(currentAnim.color, 0, endPixel % NUMPIXELS + 1);
-        } else {
-            // No wrapping needed, normal fill
-            strip.fill(currentAnim.color, startPixel, length);
+        // No wrapping needed
+        for (int i = startPixel; i <= endPixel; ++i) {
+            strip.setPixelColor(i, currentAnim.color);  // Set the color of pixels in the range
         }
     }
+    
     // Update the strip to show the changes
     strip.show();
 }
+
 
 // Draw a line centered on a position (pulse arrow animation)
 void NeoPixelAnimationManager::animatePulseArrow() {
     // Clear the strip
     strip.clear();
     // Calculate center and length
-    int centerPixel = map(currentAnim.position, 0, 360, 0, NUMPIXELS);
+    int centerPixel = currentAnim.position;
     int length = map(currentAnim.value, 0, 100, 0, NUMPIXELS);
 
     // Calculate start pixel

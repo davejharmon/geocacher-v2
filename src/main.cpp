@@ -66,8 +66,14 @@ void navigateToTarget() {
 }
 
 void updateMode(int newMode) {
+  String modeName;
+  if (newMode==0) modeName="Searching for GPS...";
+  if (newMode==1) modeName="Has GPS Lock...";
+  if (newMode==2) modeName="Heading to target...";
+  if (newMode==3) modeName="Enter password...";
+  
   Serial.print("New mode: ");
-  Serial.println(mode);
+  Serial.println(modeName);
   prevMode=mode;
   mode=newMode;
 }
@@ -112,7 +118,6 @@ void startPasswordMode() {
 }
 
 void onRedButtonRelease(unsigned long pressDuration) {
-  Serial.println("Red button released");
   lastRedPress=pressDuration;
   if (!blueButton.isClicked()) digitalWrite(LED_PIN, LOW);
   if (lastRedPress > PASSWORD_DELAY && lastBluePress > PASSWORD_DELAY) {
@@ -124,7 +129,6 @@ void onRedButtonRelease(unsigned long pressDuration) {
 }
 
 void onBlueButtonRelease(unsigned long pressDuration) {
-  Serial.println("Blue button released");
   lastBluePress=pressDuration;
   if (!redButton.isClicked()) digitalWrite(LED_PIN, LOW);
   if (lastRedPress > PASSWORD_DELAY && lastBluePress > PASSWORD_DELAY) {
@@ -147,7 +151,6 @@ void setup(void) {
   blueButton.onRelease(onBlueButtonRelease);
   compass.begin();
   pixels.begin();
-  pixels.startAnimation(ANIM_RAINBOW);
   gps.begin();
 }
 
@@ -177,6 +180,7 @@ void loop(void) {
           }
           break;
         case MODE_ENTER_PASSWORD:
+            updateMode(prevMode);
           //if nothing is playing the timer has ended
           break;
         default:

@@ -17,5 +17,7 @@ float CompassHandler::getNorth() {
     while (reversedHeading <    0.0) reversedHeading += 360.0;    // reversedHeading +=180;
     // heading = alpha * rawHeading + (1 - alpha) * heading;
     // int north = static_cast<int>(rawHeading);
+    Serial.print("N:");
+    Serial.print(reversedHeading);
     return reversedHeading;
 }
