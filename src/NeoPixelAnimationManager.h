@@ -48,7 +48,6 @@ private:
 class NeoPixelAnimationManager {
 public:
     NeoPixelAnimationManager();
-
     void begin();       // Initialize the NeoPixel strip
     bool update();      // Update the animations, should be called in the loop function
     uint16_t startAnimation(uint8_t animationType, uint32_t col=0xFFFF00, float angle = 0.0, uint8_t val = 100, bool restoreOnEnd=false); // Start a specific animation, returns end time

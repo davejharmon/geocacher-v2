@@ -12,8 +12,9 @@ public:
     bool isClicked();
     unsigned long getPressDuration(); // Get the duration the button was pressed
 
-    // Callback function
+    // Callback functions
     void onClick(void (*callback)());
+    void onRelease(void (*callback)(unsigned long pressDuration)); // Callback when button is released
 
 private:
     int pin;
@@ -25,6 +26,7 @@ private:
     unsigned long pressStartTime = 0; // Time when button is first pressed
     unsigned long pressDuration = 0; // Duration of button press
     void (*clickCallback)() = nullptr;
+    void (*releaseCallback)(unsigned long) = nullptr; // Callback for button release
 
     void handleButtonPress();
 };

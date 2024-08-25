@@ -20,7 +20,7 @@ const int LED_PIN=7;
 // constants
 #define BAUD_RATE 9600
 #define MAX_DISTANCE 600        // in meters (fix me)
-#define PASSWORD_DELAY 5000
+#define PASSWORD_DELAY 2000
 
 // breakout files & handlers
 #include "Button.h"
@@ -46,6 +46,8 @@ GPSHandler gps(GPS_RX, GPS_TX);
 int mode = MODE_SEARCHING_FOR_GPS;
 int prevMode=-1;
 int target=0;
+long lastRedPress=0;
+long lastBluePress=0;
 
 void navigateToNorth() {
     float north = compass.getNorth();
@@ -63,9 +65,16 @@ void navigateToTarget() {
       pixels.startAnimation(ANIM_ARROW,locations[target].color,course,distancePercent);
 }
 
+void updateMode(int newMode) {
+  Serial.print("New mode: ");
+  Serial.println(mode);
+  prevMode=mode;
+  mode=newMode;
+}
+
 // Define callback functions
 void onRedButtonClick() {
-    Serial.println("Red button clicked");
+    if (blueButton.isClicked()) digitalWrite(LED_PIN, HIGH);
     float north = compass.getNorth();
     switch (mode) {
       case MODE_ENTER_PASSWORD: pixels.startAnimation(ANIM_FLASH, RED,0,100,true); break;
@@ -83,20 +92,47 @@ void onRedButtonClick() {
 }
 
 void onBlueButtonClick() {
-    Serial.println("Blue button clicked");
-
+    if (redButton.isClicked()) digitalWrite(LED_PIN, HIGH);
     switch (mode) {
       case MODE_ENTER_PASSWORD: pixels.startAnimation(ANIM_FLASH, BLUE,0,100,true); break;
+      case MODE_SEARCHING_FOR_GPS:
       case MODE_HAS_VALID_GPS: {
         target = (target + 1) % MAX_TARGETS;
+        pixels.startAnimation(ANIM_WIPE,locations[target].color,0.0,1,false);
         break;
       }
       default: break;
     }
+}
 
+void startPasswordMode() {
+      pixels.clear();
+      pixels.startAnimation(ANIM_WIPE, WHITE, 0.0, 6);
+      updateMode(MODE_ENTER_PASSWORD);
+}
 
+void onRedButtonRelease(unsigned long pressDuration) {
+  Serial.println("Red button released");
+  lastRedPress=pressDuration;
+  if (!blueButton.isClicked()) digitalWrite(LED_PIN, LOW);
+  if (lastRedPress > PASSWORD_DELAY && lastBluePress > PASSWORD_DELAY) {
+    lastRedPress, lastBluePress = 0;
+    if (mode!=MODE_ENTER_PASSWORD) {
+      startPasswordMode();
+      }
+  }
+}
 
-    pixels.startAnimation(ANIM_WIPE,locations[target].color,0.0,1);
+void onBlueButtonRelease(unsigned long pressDuration) {
+  Serial.println("Blue button released");
+  lastBluePress=pressDuration;
+  if (!redButton.isClicked()) digitalWrite(LED_PIN, LOW);
+  if (lastRedPress > PASSWORD_DELAY && lastBluePress > PASSWORD_DELAY) {
+    lastRedPress, lastBluePress = 0;
+    if (mode!=MODE_ENTER_PASSWORD) {
+      startPasswordMode();
+      }
+  }  
 }
 
 void setup(void) {
@@ -105,47 +141,22 @@ void setup(void) {
   Serial.println("Hello world how are you!");
   redButton.begin();
   redButton.onClick(onRedButtonClick);
+  redButton.onRelease(onRedButtonRelease);
   blueButton.begin();
   blueButton.onClick(onBlueButtonClick);
+  blueButton.onRelease(onBlueButtonRelease);
   compass.begin();
   pixels.begin();
   pixels.startAnimation(ANIM_RAINBOW);
   gps.begin();
 }
 
-void updateMode(int newMode) {
-  prevMode=mode;
-  mode=newMode;
-}
-
-void onAnyButtonClick() {
-  digitalWrite(LED_PIN, HIGH);
-};
-
-void onNeitherButtonClicked() {
-  digitalWrite(LED_PIN, LOW);
-}
-void onBothButtonsPressedLong() {
-  updateMode(MODE_ENTER_PASSWORD);
-};
 
 void loop(void) {
       blueButton.update();
       redButton.update();
-
-      // Check if either button is clicked
-      if (redButton.isClicked() || blueButton.isClicked()) {
-        Serial.println("Either button clicked");
-        onAnyButtonClick();
-      } else {onNeitherButtonClicked();}
-
-      // Check if both buttons are pressed for >1000ms
-      if (redButton.getPressDuration() > PASSWORD_DELAY && blueButton.getPressDuration() > PASSWORD_DELAY) {
-          onBothButtonsPressedLong();
-      }
-          
       gps.update();
-      gps.debug();
+//      gps.debug();
       bool playing = pixels.update();
     if (!playing) { // If not playing, find a fallback animation
       switch (mode) {
@@ -166,17 +177,11 @@ void loop(void) {
           }
           break;
         case MODE_ENTER_PASSWORD:
-          if (prevMode!=MODE_ENTER_PASSWORD)
-          {
-            pixels.clear();
-            pixels.startAnimation(ANIM_WIPE, WHITE, 0.0, 6);
-          } else {
-
-          }
+          //if nothing is playing the timer has ended
+          break;
         default:
           break;
       }
     }
-
   }
 

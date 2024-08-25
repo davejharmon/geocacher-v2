@@ -59,6 +59,7 @@ bool NeoPixelAnimationManager::update() {
     if (currentAnim.start + currentAnim.duration <= currentTime) {
         if (currentAnim.restoreOnEnd) {
             restore(); // Restore the previous animation
+            return true;
         }
         return false;
     }
@@ -76,11 +77,15 @@ uint16_t NeoPixelAnimationManager::startAnimation(uint8_t animationType, uint32_
         state[i] = strip.getPixelColor(i);
     }
     
+    if (animationType!=prevAnimation.type) {    
+        Serial.print("Starting new animation... Dur:");
+        Serial.println(currentAnim.duration);
+    }
+
     prevAnimation = currentAnim; // Save the current animation for restoration
+    prevAnimation.duration=prevAnimation.duration-(millis()-prevAnimation.start);
     currentAnim = Animation(animationType, col, angle, val, millis(),restoreOnEnd);
     
-    Serial.print("Starting new animation... duration ");
-    Serial.println(currentAnim.duration);
     
     return currentAnim.start + currentAnim.duration;
 }
@@ -108,9 +113,10 @@ void NeoPixelAnimationManager::restore() {
         strip.setPixelColor(i, state[i]);
     }
     strip.show();
-
+    Serial.println("RESTORING");
     // Restore the previous animation state
     currentAnim = prevAnimation;
+    currentAnim.start=millis();
     prevAnimation = Animation(); // Clear previous animation
 }
 
