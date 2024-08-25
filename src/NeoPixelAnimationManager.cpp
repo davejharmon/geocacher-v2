@@ -73,7 +73,7 @@ bool NeoPixelAnimationManager::update() {
 
 uint16_t NeoPixelAnimationManager::startAnimation(uint8_t animationType, uint32_t col, float angle, uint8_t val, boolean restoreOnEnd) {
     
-    for (int i = 0; i < NUMPIXELS; i++) {
+    for (uint8_t i = 0; i < NUMPIXELS; i++) {
         state[i] = strip.getPixelColor(i);
     }
     strip.clear();
@@ -112,7 +112,7 @@ void NeoPixelAnimationManager::clear() {
 // Restore the previous state of the strip
 void NeoPixelAnimationManager::restore() {
     // Restore the pixel states from the saved array
-    for (int i = 0; i < NUMPIXELS; i++) {
+    for (uint8_t i = 0; i < NUMPIXELS; i++) {
         strip.setPixelColor(i, state[i]);
     }
     strip.show();
@@ -149,7 +149,7 @@ void NeoPixelAnimationManager::runAnimation() {
 
 // Wipe the strip with one color
 void NeoPixelAnimationManager::animateWipe() {
-    int stepModifiedBySpeed = (currentAnim.step / currentAnim.value);
+    uint8_t stepModifiedBySpeed = (currentAnim.step / currentAnim.value);
     if (stepModifiedBySpeed <= NUMPIXELS + 1) {
         strip.setPixelColor(stepModifiedBySpeed, currentAnim.color);
         strip.show();
@@ -194,15 +194,15 @@ void NeoPixelAnimationManager::animateArrow() {
         }
     } else if (endPixel >= NUMPIXELS) {
         // Line wraps around the end of the strip
-        for (int i = startPixel; i <= NUMPIXELS - 1; ++i) {
+        for (uint8_t i = startPixel; i <= NUMPIXELS - 1; ++i) {
             strip.setPixelColor(i, currentAnim.color);  // Continue drawing to end of strip
         }
-        for (int i = 0; i <= endPixel % NUMPIXELS; ++i) {
+        for (uint8_t i = 0; i <= endPixel % NUMPIXELS; ++i) {
             strip.setPixelColor(i, currentAnim.color);  // Wrap around to start of strip
         }
     } else {
         // No wrapping needed
-        for (int i = startPixel; i <= endPixel; ++i) {
+        for (uint8_t i = startPixel; i <= endPixel; ++i) {
             strip.setPixelColor(i, currentAnim.color);  // Set the color of pixels in the range
         }
     }
