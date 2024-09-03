@@ -12,12 +12,12 @@ void CompassHandler::begin() {
 float CompassHandler::getNorth() {
     lsm.read();
     float rawHeading = lsm.heading();
-    float reversedHeading = -rawHeading + 120.0;  // compass constant offset (offset for mounting reversed & position)
+    float reversedHeading = -rawHeading + 100.0;  // compass constant offset (offset for mounting reversed & position)
     while (reversedHeading >  360.0) reversedHeading -= 360.0;
     while (reversedHeading <    0.0) reversedHeading += 360.0;    // reversedHeading +=180;
     // heading = alpha * rawHeading + (1 - alpha) * heading;
     // int north = static_cast<int>(rawHeading);
-    Serial.print("N:");
-    Serial.print(reversedHeading);
+    // Serial.print("N:");
+    // Serial.print(reversedHeading);
     return reversedHeading;
 }

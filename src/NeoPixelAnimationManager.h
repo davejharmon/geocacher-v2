@@ -10,7 +10,13 @@ extern const uint32_t GREEN;
 extern const uint32_t BLUE;
 extern const uint32_t WHITE;
 extern const uint32_t BLACK;
+extern const uint32_t CYAN;
+extern const uint32_t MAGENTA;
 extern const uint32_t YELLOW;
+extern const uint32_t ORANGE;
+extern const uint32_t PURPLE;
+extern const uint32_t TEAL;
+extern const uint32_t PINK;
 
 extern const uint8_t ANIM_WIPE;
 extern const uint8_t ANIM_RAINBOW;
@@ -21,7 +27,7 @@ extern const uint8_t ANIM_FLASH;
 // Constants
 const uint16_t NUMPIXELS = 24;           // Number of NeoPixels
 const uint8_t NEO_PIN = 6;               // Pin where NeoPixels are connected
-const uint16_t ANIMATION_INTERVAL = 50;  // Interval between animation steps in milliseconds
+const uint16_t ANIMATION_INTERVAL = 250;  // Interval between animation steps in milliseconds
 
 class Animation {
 public:
@@ -54,6 +60,10 @@ public:
     bool interrupt();   // Try and interrupt the current animation, returns true if interruptible, false if failed to interrupt
     void clear();       // clear the pixel strip
     void restore();     // restore the previous state of the strip
+    uint32_t getPixel(uint8_t index);   // Get the pixel colour at a point
+    void setPixel(uint8_t index, uint32_t col);
+    void setAllPixels(const uint32_t newState[NUMPIXELS]);
+
 
 private:
     Adafruit_NeoPixel strip; // NeoPixel strip object

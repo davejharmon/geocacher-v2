@@ -51,18 +51,36 @@ long lastBluePress=0;
 
 void navigateToNorth() {
     float north = compass.getNorth();
-    int distance = 25;
-    pixels.startAnimation(ANIM_ARROW,BLUE,north,distance);
+    int distance = 100 / NUMPIXELS;
+    pixels.startAnimation(ANIM_ARROW, BLUE, north, distance);
 }
 
-void navigateToTarget() {  
+void navigateToTarget(int seconds=0) {  
+    static unsigned long lastPrintTime = 0;  // Store the last time we printed
+    unsigned long currentTime = millis();    // Get the current time
+
     float north = compass.getNorth();
-    double heading = gps.getDirection(locations[target]);
+
+    float heading = gps.getDirection(locations[target]);
     double distanceBetween = gps.getDistance(locations[target]);
-    int distancePercent = 100-(distanceBetween/MAX_DISTANCE*100); 
-    float course=north-heading;
-    if (course < 0) course+=360.0;
-      pixels.startAnimation(ANIM_ARROW,locations[target].color,course,distancePercent);
+    int distancePercent = constrain(map(static_cast<int>(distanceBetween), 0, MAX_DISTANCE, 100, 0), 0, 100);
+
+    float course = north - heading;
+    if (course < 0) course += 360.0;
+
+    // Print values once a second
+    if (currentTime - lastPrintTime >= 1000) {
+        Serial.print("North: ");
+        Serial.print(north, 2);  // Print with 2 decimal places
+        Serial.print(" - Heading: ");
+        Serial.print(heading, 2);  // Print with 2 decimal places
+        Serial.print(" = Course: ");
+        Serial.println(course, 2);  // Print with 2 decimal places
+
+        lastPrintTime = currentTime;  // Update the last print time
+    }
+
+    pixels.startAnimation(ANIM_ARROW, locations[target].color, course, distancePercent);
 }
 
 void updateMode(int newMode) {
@@ -71,7 +89,16 @@ void updateMode(int newMode) {
   if (newMode==1) modeName="Has GPS Lock...";
   if (newMode==2) modeName="Heading to target...";
   if (newMode==3) modeName="Enter password...";
-  
+  switch (mode) {
+    case MODE_ENTER_PASSWORD: {
+      pixels.clear();
+      const uint32_t newState[] = {RED, BLUE, RED, BLUE, RED, BLUE, RED, BLUE, RED, BLUE, RED, BLUE, RED, BLUE, RED, BLUE, RED, BLUE, RED, BLUE, RED, BLUE, RED, BLUE};
+      pixels.setAllPixels(newState);
+
+      break;
+    }
+    default: break;
+  }
   Serial.print("New mode: ");
   Serial.println(modeName);
   prevMode=mode;
@@ -111,32 +138,17 @@ void onBlueButtonClick() {
     }
 }
 
-void startPasswordMode() {
-      pixels.clear();
-      pixels.startAnimation(ANIM_WIPE, WHITE, 0.0, 6);
-      updateMode(MODE_ENTER_PASSWORD);
-}
+
 
 void onRedButtonRelease(unsigned long pressDuration) {
   lastRedPress=pressDuration;
   if (!blueButton.isClicked()) digitalWrite(LED_PIN, LOW);
-  if (lastRedPress > PASSWORD_DELAY && lastBluePress > PASSWORD_DELAY) {
-    lastRedPress, lastBluePress = 0;
-    if (mode!=MODE_ENTER_PASSWORD) {
-      startPasswordMode();
-      }
-  }
+
 }
 
 void onBlueButtonRelease(unsigned long pressDuration) {
   lastBluePress=pressDuration;
   if (!redButton.isClicked()) digitalWrite(LED_PIN, LOW);
-  if (lastRedPress > PASSWORD_DELAY && lastBluePress > PASSWORD_DELAY) {
-    lastRedPress, lastBluePress = 0;
-    if (mode!=MODE_ENTER_PASSWORD) {
-      startPasswordMode();
-      }
-  }  
 }
 
 void setup(void) {
@@ -158,15 +170,20 @@ void setup(void) {
 void loop(void) {
       blueButton.update();
       redButton.update();
+
+      if (mode!=MODE_ENTER_PASSWORD && lastRedPress > PASSWORD_DELAY && lastBluePress > PASSWORD_DELAY) {
+        updateMode(MODE_ENTER_PASSWORD);
+      }
+
       gps.update();
-//      gps.debug();
+      // gps.debug();
       bool playing = pixels.update();
     if (!playing) { // If not playing, find a fallback animation
       switch (mode) {
         case MODE_SEARCHING_FOR_GPS: // MODE_SEARCHING_FOR_GPS
           
           if (!gps.isValid()) {
-            //pixels.startAnimation(ANIM_RAINBOW);
+            // pixels.startAnimation(ANIM_RAINBOW);
             navigateToNorth();
           } else {
            updateMode(MODE_HAS_VALID_GPS);
@@ -174,7 +191,8 @@ void loop(void) {
           break;
         case MODE_HAS_VALID_GPS:
           if (gps.isValid()) {
-            navigateToTarget();
+            // navigateToTarget();
+            navigateToNorth();
           } else {
             updateMode(MODE_SEARCHING_FOR_GPS);
           }

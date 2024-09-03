@@ -6,7 +6,14 @@ const uint32_t GREEN = Adafruit_NeoPixel::Color(0, 255, 0);
 const uint32_t BLUE = Adafruit_NeoPixel::Color(0, 0, 255);
 const uint32_t WHITE = Adafruit_NeoPixel::Color(255, 255, 255);
 const uint32_t BLACK = Adafruit_NeoPixel::Color(0, 0, 0);
+const uint32_t CYAN = Adafruit_NeoPixel::Color(0, 255, 255);
+const uint32_t MAGENTA = Adafruit_NeoPixel::Color(255, 0, 255);
 const uint32_t YELLOW = Adafruit_NeoPixel::Color(255, 255, 20);
+const uint32_t ORANGE = Adafruit_NeoPixel::Color(255, 64, 0);
+const uint32_t PURPLE = Adafruit_NeoPixel::Color(64, 0, 255);
+const uint32_t TEAL = Adafruit_NeoPixel::Color(0, 64, 64);
+const uint32_t PINK = Adafruit_NeoPixel::Color(255, 0, 64);
+
 
 const uint8_t ANIM_WIPE = 0;
 const uint8_t ANIM_RAINBOW = 1;
@@ -26,8 +33,6 @@ uint16_t Animation::calculateDuration(uint8_t type, uint8_t val) {
         case ANIM_RAINBOW: return NUMPIXELS * ANIMATION_INTERVAL;
         case ANIM_ARROW: return ANIMATION_INTERVAL;
         case ANIM_PULSE_ARROW:
-            Serial.print("duration ");
-            Serial.println(ANIMATION_INTERVAL * (NUMPIXELS * val / 100));
             return ANIMATION_INTERVAL * (NUMPIXELS * val / 100);
         case ANIM_FLASH: return 100;
         default: break;
@@ -79,8 +84,6 @@ uint16_t NeoPixelAnimationManager::startAnimation(uint8_t animationType, uint32_
     strip.clear();
     
     if (animationType!=prevAnimation.type) {    
-        Serial.print("Starting new animation... Dur:");
-        Serial.println(currentAnim.duration);
     }
 
     prevAnimation = currentAnim;                                                        // Save the current animation for restoration
@@ -107,6 +110,19 @@ bool NeoPixelAnimationManager::interrupt() {
 
 void NeoPixelAnimationManager::clear() {
     strip.clear();
+}
+
+void NeoPixelAnimationManager::setAllPixels(const uint32_t newState[NUMPIXELS]) {
+    bool updated = false;
+    // Loop through each pixel and set it to the corresponding value in newState
+    for (uint8_t i = 0; i < NUMPIXELS; i++) {
+        if (newState[i]!=state[i]) {
+        strip.setPixelColor(i, newState[i]);
+        state[i] = newState[i]; // Update the state array as well
+        updated=true;
+        }
+    }
+    if (updated) strip.show(); // Update the strip with the new colors
 }
 
 // Restore the previous state of the strip
@@ -171,44 +187,26 @@ void NeoPixelAnimationManager::animateRainbowChase() {
     currentAnim.step = (currentAnim.step + 1) % NUMPIXELS;
 }
 
-void NeoPixelAnimationManager::animateArrow() {
+void NeoPixelAnimationManager::animateArrow() {    
     strip.clear();  // Clear the neopixel strip
-    Serial.print(" angle: ");
-    Serial.print(currentAnim.position);
-    
-    int centerPixel = currentAnim.position;  // Convert the angle to a neopixel on the strip
-    int length = map(currentAnim.value, 0, 100, 0, NUMPIXELS);  // Calculate the length as a percentage of the strip based on currentAnim.value
 
-    // Compute start and end pixel indices
-    int startPixel = centerPixel - (length / 2);
-    int endPixel = centerPixel + (length / 2);
+    int centerPixel = currentAnim.position;  // Center pixel position
+    int length = max(1, map(currentAnim.value, 0, 100, 0, NUMPIXELS));  // Calculate the length as a percentage of the strip based on currentAnim.value
 
-    // Handle wrapping around the strip
-    if (startPixel < 0) {
-        // Line wraps around the start of the strip
-        for (int i = startPixel; i < 0; ++i) {
-            strip.setPixelColor(NUMPIXELS + i, currentAnim.color);  // Wrap around to end of strip
-        }
-        for (int i = 0; i <= endPixel; ++i) {
-            strip.setPixelColor(i, currentAnim.color);  // Continue drawing from start of strip
-        }
-    } else if (endPixel >= NUMPIXELS) {
-        // Line wraps around the end of the strip
-        for (uint8_t i = startPixel; i <= NUMPIXELS - 1; ++i) {
-            strip.setPixelColor(i, currentAnim.color);  // Continue drawing to end of strip
-        }
-        for (uint8_t i = 0; i <= endPixel % NUMPIXELS; ++i) {
-            strip.setPixelColor(i, currentAnim.color);  // Wrap around to start of strip
-        }
+    // Calculate the start position, ensuring it wraps around the ring correctly
+    int startPixel = (centerPixel - ((length + 1) / 2) + NUMPIXELS) % NUMPIXELS;
+    int endPixel = (startPixel + length - 1) % NUMPIXELS;  // End pixel position
+
+    if (startPixel <= endPixel) {
+        // No wrapping needed, line fits within a single segment
+        strip.fill(currentAnim.color, startPixel, endPixel - startPixel + 1);
     } else {
-        // No wrapping needed
-        for (uint8_t i = startPixel; i <= endPixel; ++i) {
-            strip.setPixelColor(i, currentAnim.color);  // Set the color of pixels in the range
-        }
+        // Wrapping needed, split into two segments
+        strip.fill(currentAnim.color, startPixel, NUMPIXELS - startPixel);  // Fill from startPixel to the end of the ring
+        strip.fill(currentAnim.color, 0, endPixel + 1);  // Fill from the start of the ring to endPixel
     }
-    
-    // Update the strip to show the changes
-    strip.show();
+
+    strip.show();  // Update the strip to show the changes
 }
 
 
