@@ -1,5 +1,5 @@
 #include "GPS_Coordinates.h"
-#include "NeoPixelAnimationManager.h" // Include the header for color definitions
+#include "constants.h" // Include the header for color definitions
 
 // Constructor Implementation
 GPS_Coordinate::GPS_Coordinate(double lat, double lon, uint32_t col)

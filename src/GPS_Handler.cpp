@@ -39,7 +39,7 @@ void GPSHandler::debug() {
 
     // Check if any value has changed
     if (satellites != lastSatellites || status != lastStatus || failed != lastFailed) {
-        String debugLine =  status + ", Satellites: " + String(satellites) + ", Failed checksums: " + String(failed) + " ";
+        String debugLine =  status + ", Satellites: " + String(satellites) + ", Failed checksums: " + String(failed) + ", Passed: "+String(gps.passedChecksum());
         Serial.println(debugLine);
 
         // Update the stored values to the current ones
