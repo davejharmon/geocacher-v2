@@ -77,22 +77,24 @@ void NeoPixelManager::clear(){
     }    
 }
 
-bool NeoPixelManager::isPlaying(){
-    if (playing == ANIM_WIPE || playing == ANIM_TIMER) {
-        return true;
-    }
-    return false;  
+void NeoPixelManager::fill(uint32_t col){
+    for (uint8_t i = 0; i < NUMPIXELS; i++) {
+        state[i] = col;
+    }    
 }
 
 // animation functions
 
-void NeoPixelManager::start(uint8_t type, uint32_t col) {
+bool NeoPixelManager::isPlaying(){
+    return playing!=ANIM_NONE;
+}
+
+void NeoPixelManager::start(uint8_t type, uint32_t col, uint8_t sty) {
     playing=type;
     step = 0;
     color = col;
+    style = sty;
 }
-
-
 
 void NeoPixelManager::updateWipe() {
     if (playing==ANIM_WIPE && step < NUMPIXELS) {
@@ -109,7 +111,13 @@ void NeoPixelManager::updateRainbowPinwheel() {
     if (playing==ANIM_RAINBOW) {
         for (int i = 0; i < NUMPIXELS; ++i) {
             int pixelIndex = (i + step) % NUMPIXELS;
-            uint32_t rainbowColor = strip.ColorHSV((pixelIndex * 65536 / NUMPIXELS), 255, 255);
+            uint16_t hueRange;
+            switch (style) {
+                case 1: hueRange = 7330 + (pixelIndex * (9830 - 7330) / NUMPIXELS);break;           // day
+                case 2: hueRange = 29000 + (pixelIndex * (43690 - 29000) / NUMPIXELS);break;        // night
+                default: hueRange = 0  + (pixelIndex * 65536 / NUMPIXELS);break;                    // rainbow
+            }
+            uint32_t rainbowColor = strip.ColorHSV(hueRange, 255, 255);
             setPixel(rainbowColor, i);
         }
         step++;
@@ -150,8 +158,12 @@ void NeoPixelManager::updateTimer() {
 }
 
 
-void NeoPixelManager::interrupt() {
-    playing=ANIM_NONE;
+void NeoPixelManager::interrupt(uint8_t type) {
+    if (type==ANIM_NONE || playing==type) {
+        playing=ANIM_NONE;
+        step=0;
+        style=0;
+    }
 }
 
 bool NeoPixelManager::update() {

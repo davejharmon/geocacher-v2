@@ -15,12 +15,13 @@ public:
     void setStrip(const uint32_t newState[NUMPIXELS]);
     void drawLine(uint32_t col, float angle, uint8_t percent, bool centered=true);
     void clear();
+    void fill(uint32_t col);
     bool isPlaying();
 
     // Animation functions
-    void start(uint8_t type, uint32_t col=0x000000); // Starts the wipe animation
+    void start(uint8_t type, uint32_t col=0x000000, uint8_t sty=0); // Starts the wipe animation
     void startTimer(uint32_t dur);
-    void interrupt();      // Interrupts the rainbow pinwheel animation
+    void interrupt(uint8_t type=ANIM_NONE); // Interrupt any animation (or a specific type)
 
 private:
     Adafruit_NeoPixel strip;
@@ -34,7 +35,7 @@ private:
     uint32_t color;
     uint32_t started;
     uint32_t endsAt;
-
+    uint8_t style;
 
     // Private animation update functions
     void updateWipe();

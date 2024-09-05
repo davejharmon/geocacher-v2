@@ -22,6 +22,10 @@ extern const uint32_t PINK;      // Pink color
 #define NEO_PIN 6
 #define ANIMATION_INTERVAL 50
 
+// passwords
+#define R true
+#define B false
+
 // Animation types
 #define ANIM_NONE 0
 #define ANIM_RAINBOW 1
