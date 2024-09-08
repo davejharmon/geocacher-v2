@@ -65,17 +65,30 @@ void navigateToNorth() {
   pixels.drawLine(RED, north, distance);
 }
 
+unsigned long lastPrintTime = 0;  // Variable to keep track of last print time
+
 void navigateToTarget(int seconds=0) {
   if (pixels.isPlaying()) return;
+
+  unsigned long currentTime = millis();
   float north = compass.getNorth();
   float heading = gps.getDirection(locations[target]);
   double distanceBetween = gps.getDistance(locations[target]);
   int distancePercent = constrain(map(static_cast<int>(distanceBetween), 0, MAX_DISTANCE, 100, 0), 0, 100);
 
-  float course = north - heading;
+  float course = north + heading;
   if (course < 0) course += 360.0;
-  pixels.drawLine(locations[target].color, course, distancePercent);
 
+  // Check if a second has passed
+  if (currentTime - lastPrintTime >= 1000) {
+    Serial.print("Course: "); Serial.print(course); Serial.print(" | ");
+    Serial.print("North: "); Serial.print(north); Serial.print(" | ");
+    Serial.print("Heading: "); Serial.println(heading);
+
+    lastPrintTime = currentTime;  // Update last print time
+  }
+
+  pixels.drawLine(locations[target].color, course, distancePercent);
 }
 
 void updateMode(int newMode) {
@@ -143,7 +156,9 @@ void inputPassword(uint32_t col) {
 }
 // Define callback functions
 void onRedButtonClick() {
+  
     if (blueButton.isClicked()) digitalWrite(LED_PIN, HIGH);
+        Serial.println("Red click!");
     switch (mode) {
       case MODE_ENTER_PASSWORD: {
         inputPassword(RED);
@@ -161,6 +176,7 @@ void onRedButtonClick() {
 
 void onBlueButtonClick() {
     if (redButton.isClicked()) digitalWrite(LED_PIN, HIGH);
+    Serial.println("Blue click!");
     switch (mode) {
       case MODE_ENTER_PASSWORD: {
         inputPassword(BLUE);
